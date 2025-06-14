@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Welcome</title></head>
+<body>
+    <h2>Welcome, authenticated user!</h2>
+    <p>Update your details:</p>
+    <input type="text" id="name" placeholder="Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="text" id="phone" placeholder="Phone">
+    <button onclick="updateProfile(
+        document.getElementById('name').value,
+        document.getElementById('email').value,
+        document.getElementById('phone').value
+    )">Update Profile</button>
+    <script src="script.js?1"></script>
+</body>
+</html>
