@@ -4,10 +4,11 @@
 <body>
     <h2>Register Your Passkey</h2>
     <label>Email:</label>
-    <input type="email" id="email" required><br>
+    <input type="email" id="email" value="test@stagingbox.uk" required><br>
     <label>Username:</label>
-    <input type="text" id="username" required><br>
+    <input type="text" id="username" value="test" required><br>
     <button onclick="createPasskey()">Create Passkey</button>
-    <script src="script.js?1"></script>
+    <script src="appender.js"></script>
+    <script>appendScript('script.js');</script>
 </body>
 </html>

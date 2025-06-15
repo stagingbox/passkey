@@ -6,8 +6,16 @@ let passkeySettings = {
     company:   {
        domain: 'stagingbox.uk',
        name:   'Staging Box'
-    }
+    },
+    debug: 1 // Set to 1 to enable logging, 0 to disable
 };
+
+// Utility function for controlled logging
+function debugLog(...args) {
+    if (passkeySettings.debug) {
+        console.log(...args);
+    }
+}
 
 async function createPasskey() {
     let email = document.getElementById('email').value;
@@ -18,49 +26,81 @@ async function createPasskey() {
         return;
     }
 
+    debugLog("Starting passkey creation...");
+    debugLog("User details:", { email, username });
+
+    let response = await fetch(passkeySettings.server, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getChallenge" }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    let data = await response.json();
+    debugLog("Challenge received from server:", data.challenge);
+
+    let challenge = Uint8Array.from(atob(data.challenge), c => c.charCodeAt(0));
+
     let publicKeyOptions = {
-        challenge: new Uint8Array(32), // Random challenge from server
-        rp: { id: passkeySettings.company.domain, name: passkeySettings.company.name },
+        challenge: challenge,
+        rp: { id: window.location.hostname, name: passkeySettings.company.name },
         user: {
-            id: new Uint8Array(16),
+            id: crypto.getRandomValues(new Uint8Array(16)), // Generates a valid binary user ID
             name: email,
             displayName: username
         },
         pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-        authenticatorSelection: { residentKey: "required" },
+        authenticatorSelection: { residentKey: "required" }
     };
 
-    let credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
+    debugLog("PublicKey creation options:", publicKeyOptions);
 
-    let response = await fetch(passkeySettings.server, {
+    let credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
+    debugLog("Credential created successfully:", credential);
+
+    await fetch(passkeySettings.server, {
         method: 'POST',
         body: JSON.stringify({
             action: "register",
             credentialId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
-            publicKey: btoa(String.fromCharCode(...new Uint8Array(credential.response.getPublicKey()))),
-            email,
+            publicKey: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
+	    email,
             username
         }),
         headers: { 'Content-Type': 'application/json' }
     });
 
-    let data = await response.json();
-    if (data.success) {
-        alert("Passkey created successfully!");
-        window.location.href = passkeySettings.login;
-    }
+    debugLog("Passkey registration completed.");
+    alert("Passkey created successfully!");
+    window.location.href = passkeySettings.login;
 }
 
 async function authenticateWithPasskey() {
-    let publicKeyOptions = {
-        challenge: new Uint8Array(32), // Random challenge from server
-        allowCredentials: [], // Let the browser pick from saved credentials
-        userVerification: "required"
-    };
-
-    let credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
+    debugLog("Starting passkey authentication...");
 
     let response = await fetch(passkeySettings.server, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getChallenge" }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    let data = await response.json();
+    debugLog("Authentication challenge received:", data.challenge);
+
+    let challenge = Uint8Array.from(atob(data.challenge), c => c.charCodeAt(0));
+
+    let credentialRequestOptions = {
+        challenge: challenge,
+        allowCredentials: [],
+        userVerification: "required",
+        rpId: window.location.hostname
+    };
+
+    debugLog("Credential request options:", credentialRequestOptions);
+
+    let credential = await navigator.credentials.get({ publicKey: credentialRequestOptions });
+    debugLog("Passkey retrieved:", credential);
+
+    let loginResponse = await fetch(passkeySettings.server, {
         method: 'POST',
         body: JSON.stringify({
             action: "login",
@@ -69,8 +109,10 @@ async function authenticateWithPasskey() {
         headers: { 'Content-Type': 'application/json' }
     });
 
-    let data = await response.json();
-    if (data.success) {
+    let loginData = await loginResponse.json();
+    debugLog("Login response:", loginData);
+
+    if (loginData.success) {
         alert("Authenticated successfully!");
         window.location.href = passkeySettings.dashboard;
     } else {
