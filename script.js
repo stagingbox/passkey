@@ -3,10 +3,7 @@ let passkeySettings = {
     login:     'index.html',
     create:    'create.html',
     dashboard: 'loggedin.html',
-    company:   {
-       domain: 'stagingbox.uk',
-       name:   'Staging Box'
-    },
+    company:   'Staging Box',
     debug: 1 // Set to 1 to enable logging, 0 to disable
 };
 
@@ -42,7 +39,7 @@ async function createPasskey() {
 
     let publicKeyOptions = {
         challenge: challenge,
-        rp: { id: window.location.hostname, name: passkeySettings.company.name },
+        rp: { id: window.location.hostname, name: passkeySettings.company },
         user: {
             id: crypto.getRandomValues(new Uint8Array(16)), // Generates a valid binary user ID
             name: email,
