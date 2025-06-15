@@ -1,4 +1,4 @@
-lass PasskeyJS {
+class PasskeyJS {
     constructor() {
         this.settings = {
             server:      'server.php',
